@@ -1,94 +1,172 @@
-
 <!DOCTYPE html>
 <html lang="zh-Hant-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jigsaw Generator - AI 拼圖生成器</title>
+    <title>Jigsaw Generator | 專業拼圖生成工具</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
 </head>
-<body>
-    <nav class="navbar">
-        <div class="container">
-            <div class="logo" style="font-weight: 800; font-size: 1.2rem;">Jigsaw Gen</div>
-            <ul class="nav-links">
-                <li><a href="#features">功能</a></li>
-                <li><a href="#guide">指南</a></li>
-                <li><a href="#contact">聯絡</a></li>
-            </ul>
-        </div>
+<body class="bg-slate-950 text-slate-200 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <nav class="p-6 flex justify-between items-center max-w-6xl mx-auto w-full">
+        <div class="text-2xl font-extrabold gradient-text">Jigsaw Gen</div>
+        <div class="text-sm text-slate-500">v2.0 Functional Beta</div>
     </nav>
 
-    <header class="hero">
-        <div class="container">
-            <h1>將影像轉化為<br>精緻拼圖</h1>
-            <p>利用 AI 算法將任何圖片自動切割並生成可下載的拼圖模板，支援多種難度與形狀。</p>
-            <a href="#guide" class="btn btn-primary">立即開始</a>
-        </div>
-    </header>
+    <main class="flex-grow flex items-center justify-center p-4">
+        <div class="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8">
+            
+            <!-- Left: Controls -->
+            <div class="space-y-6">
+                <div class="glass p-8 rounded-3xl shadow-2xl">
+                    <h2 class="text-xl font-bold mb-6 flex items-center gap-2">
+                        <span class="w-2 h-6 bg-blue-500 rounded-full"></span>
+                        生成設定
+                    </h2>
 
-    <section id="features" class="section">
-        <div class="container">
-            <h2 class="section-title">強大功能</h2>
-            <div class="grid">
-                <div class="card">
-                    <h3>智能切割</h3>
-                    <p>自動分析影像內容，確保拼圖碎片在視覺上具有邏輯性且具挑戰性。</p>
+                    <!-- Upload Zone -->
+                    <div class="mb-8">
+                        <label class="block text-sm font-medium text-slate-400 mb-2">上傳影像</label>
+                        <div id="drop-zone" class="border-2 border-dashed border-slate-700 rounded-2xl p-8 text-center hover:border-blue-500 hover:bg-slate-800/50 transition-all cursor-pointer group">
+                            <input type="file" id="image-upload" class="hidden" accept="image/*">
+                            <div id="upload-placeholder">
+                                <div class="text-4xl mb-3 group-hover:scale-110 transition-transform">🖼️</div>
+                                <p class="text-slate-400">點擊或拖拽圖片至此</p>
+                                <p class="text-xs text-slate-600 mt-2">支援 JPG, PNG (最大 10MB)</p>
+                            </div>
+                            <img id="preview-img" class="hidden w-full rounded-lg shadow-lg" src="" alt="Preview">
+                        </div>
+                    </div>
+
+                    <!-- PCS Slider -->
+                    <div class="mb-8">
+                        <div class="flex justify-between items-center mb-3">
+                            <label class="text-sm font-medium text-slate-400">拼圖總片數 (PCS)</label>
+                            <span id="pcs-value" class="text-lg font-bold text-blue-400">100</span>
+                        </div>
+                        <input type="range" id="pcs-slider" min="12" max="1000" value="100" 
+                               class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
+                        <div class="flex justify-between mt-2">
+                            <span class="text-xs text-slate-600">12</span>
+                            <span class="text-xs text-slate-600">1000</span>
+                        </div>
+                        <div id="difficulty-label" class="mt-4 text-center py-1 px-3 rounded-full text-xs font-bold bg-blue-900/30 text-blue-400 border border-blue-800/50 w-fit mx-auto">
+                            中等 (Medium)
+                        </div>
+                    </div>
+
+                    <!-- Generate Button -->
+                    <button id="generate-btn" class="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-2xl transition-all shadow-lg shadow-blue-900/20 active:scale-95 flex justify-center items-center gap-2">
+                        <span>生成拼圖模板</span>
+                        <span id="loader" class="hidden animate-spin">🌀</span>
+                    </button>
                 </div>
-                <div class="card">
-                    <h3>自定義難度</h3>
-                    <p>從簡單的 12 片到極具挑戰的 1000 片，隨心定義你的遊戲難度。</p>
-                </div>
-                <div class="card">
-                    <h3>高解析輸出</h3>
-                    <p>生成工業級 PDF 與 SVG 向量格式，方便直接進行激光切割或列印。</p>
+            </div>
+
+            <!-- Right: Preview/Result -->
+            <div class="flex flex-col justify-center">
+                <div class="glass p-8 rounded-3xl shadow-2xl h-full min-h-[400px] flex flex-col items-center justify-center text-center border-blue-500/20">
+                    <div id="result-placeholder" class="space-y-4">
+                        <div class="text-6xl opacity-20">🧩</div>
+                        <p class="text-slate-500">設定完成後<br>在此預覽生成的拼圖</p>
+                    </div>
+                    <div id="result-content" class="hidden w-full h-full flex flex-col items-center">
+                        <div class="w-full aspect-square bg-slate-800 rounded-lg mb-6 flex items-center justify-center text-slate-600 border border-slate-700">
+                            [ 拼圖預覽圖 ]
+                        </div>
+                        <div class="flex gap-3 w-full">
+                            <button class="flex-1 py-2 bg-slate-700 hover:bg-slate-600 rounded-xl text-sm font-medium transition-colors">下載 PDF</button>
+                            <button class="flex-1 py-2 bg-slate-700 hover:bg-slate-600 rounded-xl text-sm font-medium transition-colors">下載 SVG</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </section>
+    </main>
 
-    <section id="guide" class="section" style="background: var(--gray-900);">
-        <div class="container">
-            <h2 class="section-title">使用指南</h2>
-            <div style="max-width: 800px; margin: 0 auto;">
-                <div style="margin-bottom: 2rem; display: flex; gap: 1.5rem;">
-                    <div style="font-weight: 800; font-size: 1.5rem; color: var(--accent);">01</div>
-                    <div>
-                        <h4>上傳影像</h4>
-                        <p>上傳您想要轉換為拼圖的 JPG 或 PNG 圖片。</p>
-                    </div>
-                </div>
-                <div style="margin-bottom: 2rem; display: flex; gap: 1.5rem;">
-                    <div style="font-weight: 800; font-size: 1.5rem; color: var(--accent);">02</div>
-                    <div>
-                        <h4>設定參數</h4>
-                        <p>選擇拼圖的總片數 (PCS) 與切割形狀。</p>
-                    </div>
-                </div>
-                <div style="margin-bottom: 2rem; display: flex; gap: 1.5rem;">
-                    <div style="font-weight: 800; font-size: 1.5rem; color: var(--accent);">03</div>
-                    <div>
-                        <h4>生成並下載</h4>
-                        <p>點擊生成後，即可下載包含切割線的 PDF 檔案。</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section id="contact" class="section">
-        <div class="container" style="text-align: center;">
-            <h2 class="section-title">聯絡我們</h2>
-            <p style="color: var(--gray-200); margin-bottom: 2rem;">如果您有任何合作需求或技術問題，歡迎隨時聯絡。</p>
-            <a href="mailto:info@twgreenpu.com" class="btn btn-primary">發送郵件</a>
-        </div>
-    </section>
-
-    <footer>
-        <div class="container">
-            <p>&copy; 2026 Jigsaw Generator. Powered by Hermes Agent.</p>
-        </div>
+    <footer class="p-8 text-center text-slate-600 text-xs">
+        &copy; 2026 Jigsaw Generator. Professional Puzzle Engineering.
     </footer>
+
+    <script>
+        const imageUpload = document.getElementById('image-upload');
+        const dropZone = document.getElementById('drop-zone');
+        const previewImg = document.getElementById('preview-img');
+        const placeholder = document.getElementById('upload-placeholder');
+        const pcsSlider = document.getElementById('pcs-slider');
+        const pcsValue = document.getElementById('pcs-value');
+        const diffLabel = document.getElementById('difficulty-label');
+        const genBtn = document.getElementById('generate-btn');
+        const loader = document.getElementById('loader');
+        const resultPlaceholder = document.getElementById('result-placeholder');
+        const resultContent = document.getElementById('result-content');
+
+        // Upload Logic
+        dropZone.onclick = () => imageUpload.click();
+        imageUpload.onchange = (e) => handleFile(e.target.files[0]);
+
+        function handleFile(file) {
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                previewImg.src = e.target.result;
+                previewImg.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // PCS & Difficulty Logic
+        pcsSlider.oninput = (e) => {
+            const val = e.target.value;
+            pcsValue.textContent = val;
+            
+            if (val <= 50) {
+                diffLabel.textContent = '簡單 (Easy)';
+                diffLabel.className = 'mt-4 text-center py-1 px-3 rounded-full text-xs font-bold bg-green-900/30 text-green-400 border border-green-800/50 w-fit mx-auto';
+            } else if (val <= 200) {
+                diffLabel.textContent = '中等 (Medium)';
+                diffLabel.className = 'mt-4 text-center py-1 px-3 rounded-full text-xs font-bold bg-blue-900/30 text-blue-400 border border-blue-800/50 w-fit mx-auto';
+            } else {
+                diffLabel.textContent = '困難 (Hard)';
+                diffLabel.className = 'mt-4 text-center py-1 px-3 rounded-full text-xs font-bold bg-red-900/30 text-red-400 border border-red-800/50 w-fit mx-auto';
+            }
+        };
+
+        // Generate Action
+        genBtn.onclick = () => {
+            if (!imageUpload.files[0]) {
+                alert('請先上傳圖片！');
+                return;
+            }
+            
+            loader.classList.remove('hidden');
+            genBtn.disabled = true;
+            genBtn.classList.add('opacity-50');
+
+            setTimeout(() => {
+                loader.classList.add('hidden');
+                genBtn.disabled = false;
+                genBtn.classList.remove('opacity-50');
+                resultPlaceholder.classList.add('hidden');
+                resultContent.classList.remove('hidden');
+            }, 2000);
+        };
+    </script>
 </body>
 </html>
